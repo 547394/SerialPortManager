@@ -1,7 +1,7 @@
 # SerialPortManager
 Android串口通讯, 支持发送数据回调, 支持并发处理, 自定义协议, CRC校验, 自动粘包, 自动去除冗余的干扰数据
 
-是 [https://github.com/Geek8ug/Android-SerialPort] (Android-SerialPort) 项目的二次封装
+是 [Android-SerialPort](https://github.com/Geek8ug/Android-SerialPort) 项目的二次封装
 
 ## 引入
 
