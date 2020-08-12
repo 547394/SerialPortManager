@@ -53,6 +53,13 @@ public class SerialPortProtocol {
     }
 
     public int getMinLength() {
-        return frameHeader.length + frameLength + frameEnd.length;
+        int length = frameLength;
+        if (frameHeader != null) {
+            length += frameHeader.length;
+        }
+        if (frameEnd != null) {
+            length += frameEnd.length;
+        }
+        return length;
     }
 }

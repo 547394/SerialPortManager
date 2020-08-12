@@ -1,8 +1,8 @@
 package com.tim.serialportlib;
 
-abstract public class OnSerialReportListener {
+abstract public class OnReportListener {
 
-    public void onSuccess(String data, byte[] bytes) {
+    public void onSuccess(byte[] bytes) {
     }
 
     public void onFailure(SerialPortError error) {

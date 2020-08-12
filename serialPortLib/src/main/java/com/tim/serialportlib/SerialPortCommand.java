@@ -2,23 +2,19 @@ package com.tim.serialportlib;
 
 class SerialPortCommand {
 
-    int                    flag;
-    byte                   fnCode;
-    byte[]                 data;
-    OnSerialReportListener listener;
+    private byte[]           hexData;
+    private OnReportListener listener;
 
-    public SerialPortCommand(int flag, byte fnCode, byte[] data, OnSerialReportListener listener) {
-        this.flag     = flag;
-        this.fnCode   = fnCode;
-        this.data     = data;
+    public SerialPortCommand(byte[] hexData, OnReportListener listener) {
+        this.hexData  = hexData;
         this.listener = listener;
     }
 
     public byte[] getHexData() {
-        return data;
+        return hexData;
     }
 
-    public OnSerialReportListener getListener() throws NullPointerException {
+    public OnReportListener getListener() throws NullPointerException {
         return listener;
     }
 }
