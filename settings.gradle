@@ -1,0 +1,3 @@
+include ':serialPortLib'
+include ':app'
+rootProject.name = "SerialPort"
