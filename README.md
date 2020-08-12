@@ -3,6 +3,8 @@ Android串口通讯, 支持发送数据回调, 支持并发处理, 自定义协�
 
 是 [Android-SerialPort](https://github.com/Geek8ug/Android-SerialPort) 项目的二次封装
 
+[![](https://jitpack.io/v/547394/SerialPortManager.svg)](https://jitpack.io/#547394/SerialPortManager)
+
 ## 引入
 
 **Step 1.** Add the JitPack repository to your build file
