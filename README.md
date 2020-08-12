@@ -60,7 +60,7 @@ protocol.setFrameHeader((byte) 0x09C, (byte) 0xC9);
 protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
 // 设置CRC计算方式和范围, 结束范围可为负值, 解决内容长度可变问题
 protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
-// 启用协议, setProtocol 后s etReceivedTimeout 无效, 因为不再以超时判断而是以协议判断
+// 启用协议, setProtocol 后setReceivedTimeout 无效, 因为不再以超时判断而是以协议判断
 serialPortManager.setProtocol(protocol);
 ```
 
