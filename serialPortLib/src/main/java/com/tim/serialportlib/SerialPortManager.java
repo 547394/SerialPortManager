@@ -30,10 +30,10 @@ public class SerialPortManager {
     // 工作标志
     private boolean                       onWorking       = false;
     SerialPortHelper  serialPortHelper;
+    SerialPortCommand command;
     OnOpenListener    onOpenListener;
     OnDataListener    onDataListener;
     OnReportListener  onReportListener;
-    SerialPortCommand command;
 
     public SerialPortManager() {
         serialPortHelper = new SerialPortHelper();
@@ -47,10 +47,36 @@ public class SerialPortManager {
         this.onDataListener = listener;
     }
 
+    public void setSendInterval(int interval) {
+        sendInterval = interval;
+    }
+
+    public void setReceivedTimeout(int timeout) {
+        receivedTimeout = timeout;
+    }
+
+    public void setBufferSize(int bufferSize) {
+        this.bufferSize = bufferSize;
+    }
+
+    public void setProtocol(SerialPortProtocol protocol) {
+        this.protocol = protocol;
+    }
+
+    public String[] getAllDeicesPath() {
+        return serialPortHelper.getAllDeicesPath();
+    }
+
     public void open(String port, int baudRate) {
+        open(port, baudRate, 8, 0, 1);
+    }
+
+    public void open(String port, int baudRate, int dataBits, int parity, int stopBits) {
         serialPortHelper.setPort(port);
         serialPortHelper.setBaudRate(baudRate);
-        serialPortHelper.setStopBits(1);
+        serialPortHelper.setDataBits(dataBits);
+        serialPortHelper.setParity(parity);
+        serialPortHelper.setStopBits(stopBits);
         serialPortHelper.setIOpenSerialPortListener(new IOpenSerialPortListener() {
             @Override
             public void onSuccess(File device) {
@@ -93,7 +119,7 @@ public class SerialPortManager {
                                     onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT);
                                     onReportListener.onComplete();
                                 }
-                                cancelReceiverTimer();
+                                cancelReceivedTimer();
                                 clean();
                             }
                         }, receivedTimeout);
@@ -112,13 +138,17 @@ public class SerialPortManager {
         }
     }
 
-    public void sendHexString(String hexString, OnReportListener listener) {
-        queueList.offer(new SerialPortCommand(BytesUtil.toByteArray(hexString), listener));
+    public boolean sendHexString(String hex) {
+        return sendBytes(BytesUtil.toByteArray(hex));
+    }
+
+    public void sendBytes(byte[] bytes, OnReportListener listener) {
+        queueList.offer(new SerialPortCommand(bytes, listener));
         sendNext();
     }
 
-    public boolean sendHexString(String hex) {
-        return sendBytes(BytesUtil.toByteArray(hex));
+    public void sendHexString(String hexString, OnReportListener listener) {
+        sendBytes(BytesUtil.toByteArray(hexString), listener);
     }
 
     private void sendNext() {
@@ -132,6 +162,9 @@ public class SerialPortManager {
             if (command != null) {
                 onWorking        = true;
                 onReportListener = command.getListener();
+                // 发送之前重建缓冲区
+                buffer       = new byte[bufferSize];
+                bufferLength = 0;
                 serialPortHelper.sendBytes(command.getHexData());
             }
         }
@@ -167,7 +200,7 @@ public class SerialPortManager {
                 isFindEnd &= (buffer[bufferLength - j] == protocol.getFrameEnd()[protocol.getFrameEnd().length - j]);
             }
             if (isFindEnd) {
-                cancelReceiverTimer();
+                cancelReceivedTimer();
                 Log.d(TAG, BytesUtil.toHexString(buffer, bufferLength));
                 boolean error      = false;
                 int     offset     = protocol.getFrameEnd().length;
@@ -229,7 +262,7 @@ public class SerialPortManager {
                     if (onDataListener != null) {
                         onDataListener.onDataReceived(dest);
                     }
-                    receivedTimer = null;
+                    cancelReceivedTimer();
                     clean();
                 }
             }, receivedTimeout);
@@ -245,24 +278,13 @@ public class SerialPortManager {
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    // 有可能在 sendInterval 时间内又收到了新的干扰数据
-                    buffer       = new byte[bufferSize];
-                    bufferLength = 0;
                     sendNext();
                 }
             }, sendInterval);
         }
     }
 
-    public void setSendInterval(int interval) {
-        sendInterval = interval;
-    }
-
-    public void setReceivedTimeout(int timeout) {
-        receivedTimeout = timeout;
-    }
-
-    public void cancelReceiverTimer() {
+    public void cancelReceivedTimer() {
         try {
             if (receivedTimer != null) {
                 receivedTimer.cancel();
@@ -271,14 +293,6 @@ public class SerialPortManager {
             }
         } catch (NullPointerException ignored) {
         }
-    }
-
-    public void setBufferSize(int bufferSize) {
-        this.bufferSize = bufferSize;
-    }
-
-    public void setProtocol(SerialPortProtocol protocol) {
-        this.protocol = protocol;
     }
 
     public void close() {
