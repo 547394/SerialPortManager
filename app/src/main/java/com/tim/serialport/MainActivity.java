@@ -27,6 +27,10 @@ public class MainActivity extends AppCompatActivity {
         test1();
     }
 
+    private int executes   = 1000;
+    private int errorTotal = 0;
+    private int current    = 0;
+
     private void test1() {
         // 设置帧头
         protocol.setFrameHeader((byte) 0x09C, (byte) 0xC9);
@@ -39,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         // 粘包时间设置, 单位:毫秒,
         // setProtocol 后该功能在setOnDataListener不生效.因为不再以超时判断而是以协议判断
         // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
-        serialPortManager.setReceivedTimeout(300);
+        // serialPortManager.setReceivedTimeout(350);
         serialPortManager.setOnDataListener(new OnDataListener() {
             @Override
             public void onDataReceived(byte[] bytes) {
@@ -54,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                for (int i = 0; i < 400; i++) {
+                for (int i = 0; i < executes; i++) {
                     serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
@@ -64,11 +68,16 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onFailure(SerialPortError error) {
                             Log.i("onFailure", error.toString());
+                            errorTotal++;
                         }
 
                         @Override
                         public void onComplete() {
                             super.onComplete();
+                            current++;
+                            if (current == executes) {
+                                Log.i("result", String.format("共执行 %d 次, 失败 %d 次", executes, errorTotal));
+                            }
                         }
                     });
                 }

@@ -22,9 +22,9 @@ public class SerialPortManager {
     private int                           bufferLength    = 0;
     private Timer                         receivedTimer;
     // 发关数据间隔
-    private int                           sendInterval    = 50;
+    private int                           sendInterval    = 100;
     // 接收数据间隔, 当没有帧头帧尾时有效
-    private int                           receivedTimeout = 400;
+    private int                           receivedTimeout = 350;
     // 发送队列
     private LinkedList<SerialPortCommand> queueList       = new LinkedList<SerialPortCommand>();
     // 工作标志
@@ -111,18 +111,22 @@ public class SerialPortManager {
                     }
                     if (onReportListener != null) {
                         receivedTimer = new Timer();
-                        receivedTimer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                Log.e(TAG, "RECEIVED_TIMEOUT");
-                                if (onReportListener != null) {
-                                    onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT);
-                                    onReportListener.onComplete();
+                        try {
+                            receivedTimer.schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    Log.e(TAG, "RECEIVED_TIMEOUT");
+                                    if (onReportListener != null) {
+                                        onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT);
+                                        onReportListener.onComplete();
+                                    }
+                                    cancelReceivedTimer();
+                                    clean();
                                 }
-                                cancelReceivedTimer();
-                                clean();
-                            }
-                        }, receivedTimeout);
+                            }, receivedTimeout);
+                        } catch (IllegalStateException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             });
@@ -275,12 +279,12 @@ public class SerialPortManager {
         onWorking        = false;
         onReportListener = null;
         if (queueList.size() > 0) {
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    sendNext();
-                }
-            }, sendInterval);
+            try {
+                Thread.sleep(sendInterval);
+                sendNext();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
