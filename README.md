@@ -24,7 +24,7 @@ Add it in your root build.gradle at the end of repositories:
 
 
 	dependencies {
-	        implementation 'com.github.547394:SerialPortManager:1.0.1'
+	        implementation 'com.github.547394:SerialPortManager:1.0.3'
 	}
 
 
@@ -39,7 +39,7 @@ serialPortManager.setReceivedTimeout(100);
 serialPortManager.setOnDataListener(new OnDataListener() {
     @Override
     public void onDataReceived(byte[] bytes) {
-        // 自动粘包, bytes内的数据仅是CRC计算的内容, 不返回帧头帧尾和CRC部分
+        // 自动粘包
     }
 
     @Override
