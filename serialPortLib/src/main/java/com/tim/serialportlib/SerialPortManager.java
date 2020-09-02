@@ -29,6 +29,7 @@ public class SerialPortManager {
     private LinkedList<SerialPortCommand> queueList       = new LinkedList<SerialPortCommand>();
     // 工作标志
     private boolean                       onWorking       = false;
+    private boolean                       debug           = false;
     SerialPortHelper  serialPortHelper;
     SerialPortCommand command;
     OnOpenListener    onOpenListener;
@@ -97,6 +98,7 @@ public class SerialPortManager {
                 @Override
                 public void onDataReceived(byte[] bytes) {
                     try {
+                        logcat("onDataReceived(101):" + BytesUtil.toHexString(bytes));
                         SerialPortManager.this.onDataReceived(bytes);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -180,11 +182,11 @@ public class SerialPortManager {
 
     private void onDataReceived(byte[] bytes) throws Exception {
         // 粘包, 扛强干扰型, 可以兼容帧头和帧头有多余字节功能
-        if (protocol.getFrameHeader() != null) {
+        if (protocol.isSetFrameHeader()) {
             for (byte aByte : bytes) {
                 buffer[bufferLength++] = aByte;
                 // 查找帧头
-                if (bufferLength == protocol.getFrameHeader().length) {
+                if (bufferLength == protocol.getFrameHeaderLength()) {
                     for (int i = 0; i < bufferLength; i++) {
                         if (!(buffer[i] == protocol.getFrameHeader()[i])) {
                             System.arraycopy(buffer, 1, buffer, 0, bufferLength--);
@@ -198,79 +200,103 @@ public class SerialPortManager {
                 buffer[bufferLength++] = aByte;
             }
         }
-        if (bufferLength > protocol.getMinLength() && protocol.getFrameEnd() != null) {
-            boolean isFindEnd = true;
-            for (int j = protocol.getFrameEnd().length; j > 0; j--) {
-                isFindEnd &= (buffer[bufferLength - j] == protocol.getFrameEnd()[protocol.getFrameEnd().length - j]);
+        protocol.setBufferLength(bufferLength);
+        if (protocol.getDataLenIndex() > 0 && protocol.getDataLength() == 0 && bufferLength >= protocol.getDataLenIndex()) {
+            protocol.setDataLength(buffer[protocol.getDataLenIndex()]);
+        }
+        if (protocol.getProtocolModel() == SerialPortProtocol.PROTOCOL_MODEL.VARIABLE) {
+            if (protocol.isSetFrameHeader()) {
+                if (bufferLength >= protocol.getMinDataLength()) {
+                    // 校验帧尾
+                    if (protocol.isSetFrameEnd()) {
+                        boolean isFindEnd = true;
+                        for (int j = protocol.getFrameEndLength(); j > 0; j--) {
+                            isFindEnd &= (buffer[bufferLength - j] == protocol.getFrameEnd()[protocol.getFrameEndLength() - j]);
+                        }
+                        if (isFindEnd && bufferLength == protocol.getFrameLength()) {
+                            logcat("有帧头帧尾模式");
+                            output();
+                        }
+                    } else {
+                        if (bufferLength - 1 == protocol.getFrameLength()) {
+                            logcat("有帧头指定长度信息模式");
+                            output();
+                        }
+                    }
+                }
+            } else {
+                // 没有定义帧头则认为没有定义协议, 启用超时粘包
+                if (receivedTimer == null) {
+                    receivedTimer = new Timer();
+                    receivedTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            logcat("超时粘包模式");
+                            output();
+                        }
+                    }, receivedTimeout);
+                }
             }
-            if (isFindEnd) {
-                cancelReceivedTimer();
-                Log.d(TAG, BytesUtil.toHexString(buffer, bufferLength));
-                boolean error      = false;
-                int     offset     = protocol.getFrameEnd().length;
-                byte[]  crc;
-                int     crc_length = 0;
-                int[]   area       = protocol.getCRCArea();
-                int     area_start = area[0];
-                int     area_end   = area[1] > area[0] ? area[1] : bufferLength + area[1];
-                switch (protocol.getCRCModel()) {
-                    case BCC:
-                        crc_length = 1;
-                        if (!(Crypto.crc_bcc(buffer, area_start, area_end) == buffer[bufferLength - 1 - offset])) {
-                            error = true;
-                        }
-                        break;
-                    case CHECKSUM:
-                        crc = Crypto.crc_check_sum(buffer, area_start, area_end);
-                        crc_length = 2;
-                        if (!(crc[0] == buffer[bufferLength - 2 - offset] && crc[1] == buffer[bufferLength - 1 - offset])) {
-                            error = true;
-                        }
-                        break;
-                    case MODBUS_16:
-                        crc = Crypto.crc_modbus_16(buffer, area_start, area_end);
-                        crc_length = 2;
-                        if (!(crc[0] == buffer[bufferLength - 2 - offset] && crc[1] == buffer[bufferLength - 1 - offset])) {
-                            error = true;
-                        }
-                        break;
-                }
-                if (!error) {
-                    byte[] dest = new byte[bufferLength - protocol.getFrameHeader().length - protocol.getFrameEnd().length - crc_length];
-                    System.arraycopy(buffer, protocol.getFrameHeader().length, dest, 0, dest.length);
-                    if (onDataListener != null) {
-                        onDataListener.onDataReceived(dest);
-                    }
-                    if (onReportListener != null) {
-                        onReportListener.onSuccess(dest);
-                        onReportListener.onComplete();
-                    }
-                } else {
-                    Log.e(TAG, "RECEIVED_CRC_ERROR");
-                    if (onReportListener != null) {
-                        onReportListener.onFailure(SerialPortError.RECEIVED_CRC_ERROR);
-                        onReportListener.onComplete();
-                    }
-                }
-                clean();
+        } else {
+            if (bufferLength == protocol.getLength()) {
+                logcat("固定长度模式");
+                output();
             }
         }
-        // 没有帧头的情况超时自动拼接
-        if (protocol.getFrameHeader() == null && protocol.getFrameEnd() == null && receivedTimer == null) {
-            receivedTimer = new Timer();
-            receivedTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    byte[] dest = new byte[bufferLength];
-                    System.arraycopy(buffer, 0, dest, 0, dest.length);
-                    if (onDataListener != null) {
-                        onDataListener.onDataReceived(dest);
-                    }
-                    cancelReceivedTimer();
-                    clean();
+    }
+
+    // 计算并判断CRC, 如果CRC正确则返回 true 否则返回false
+    private boolean calculateCRC() {
+        boolean error      = false;
+        int     offset     = protocol.getFrameEndLength();
+        int[]   area       = protocol.getCRCArea();
+        int     area_start = area[0];
+        int     area_end   = area[1] > area[0] ? area[1] : bufferLength + area[1];
+        byte[]  crc        = new byte[0];
+        switch (protocol.getCRCModel()) {
+            case BCC:
+                if (!(Crypto.crc_bcc(buffer, area_start, area_end) == buffer[bufferLength - 1 - offset])) {
+                    error = true;
                 }
-            }, receivedTimeout);
+                break;
+            case CHECKSUM:
+                crc = Crypto.crc_check_sum(buffer, area_start, area_end);
+                if (!(crc[0] == buffer[bufferLength - 2 - offset] && crc[1] == buffer[bufferLength - 1 - offset])) {
+                    error = true;
+                }
+                break;
+            case MODBUS_16:
+                crc = Crypto.crc_modbus_16(buffer, area_start, area_end);
+                if (!(crc[0] == buffer[bufferLength - 2 - offset] && crc[1] == buffer[bufferLength - 1 - offset])) {
+                    error = true;
+                }
+                break;
         }
+        if (error) {
+            Log.e(TAG, "RECEIVED_CRC_ERROR :" + BytesUtil.toHexString(crc));
+            if (onReportListener != null) {
+                onReportListener.onFailure(SerialPortError.RECEIVED_CRC_ERROR);
+                onReportListener.onComplete();
+            }
+        }
+        return !error;
+    }
+
+    private void output() {
+        cancelReceivedTimer();
+        Log.d("output", BytesUtil.toHexString(buffer, bufferLength));
+        if (calculateCRC()) {
+            byte[] dest = new byte[protocol.getFrameLength()];
+            System.arraycopy(buffer, 0, dest, 0, dest.length);
+            if (onDataListener != null) {
+                onDataListener.onDataReceived(dest);
+            }
+            if (onReportListener != null) {
+                onReportListener.onSuccess(dest);
+                onReportListener.onComplete();
+            }
+        }
+        clean();
     }
 
     private void clean() {
@@ -296,6 +322,16 @@ public class SerialPortManager {
                 receivedTimer = null;
             }
         } catch (NullPointerException ignored) {
+        }
+    }
+
+    public void enableDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    private void logcat(String msg) {
+        if (debug) {
+            Log.d(TAG, msg);
         }
     }
 

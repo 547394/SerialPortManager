@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
+    private String TAG = getClass().getSimpleName();
     SerialPortManager  serialPortManager = new SerialPortManager();
     SerialPortProtocol protocol          = new SerialPortProtocol();
 
@@ -24,64 +25,139 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        test1();
+        model1();
+        serialPortManager.enableDebug(true);
+        serialPortManager.open("/dev/ttyS1", 9600);
     }
 
-    private int executes   = 1000;
-    private int errorTotal = 0;
-    private int current    = 0;
+    /**
+     * 自动粘包 无帧头帧尾, 无CRC校验
+     */
+    private void model1() {
+        // 从收到第一个字节开始, 50毫秒后自动粘包
+        serialPortManager.setReceivedTimeout(50);
+        serialPortManager.setOnDataListener(new OnDataListener() {
+            @Override
+            public void onDataReceived(byte[] bytes) {
+                Log.i(TAG, BytesUtil.toHexString(bytes));
+            }
+        });
+    }
 
-    private void test1() {
+    /**
+     * 固定长度, 无帧头,无帧尾
+     */
+    private void model2() {
+        protocol.setFixedLength(20);
+        serialPortManager.setProtocol(protocol);
+        serialPortManager.setOnDataListener(new OnDataListener() {
+            @Override
+            public void onDataReceived(byte[] bytes) {
+                Log.i(TAG, BytesUtil.toHexString(bytes));
+            }
+        });
+    }
+
+    /**
+     * 固定长度, 有帧头, 无帧尾无CRC校验
+     */
+    private void model3() {
+        protocol.setFrameHeader((byte) 0x02, (byte) 0x10);
+        protocol.setFixedLength(20);
+        serialPortManager.setProtocol(protocol);
+        serialPortManager.setOnDataListener(new OnDataListener() {
+            @Override
+            public void onDataReceived(byte[] bytes) {
+                Log.i(TAG, BytesUtil.toHexString(bytes));
+            }
+        });
+    }
+
+    /**
+     * 可变长度, 有帧头, 帧尾, CRC校验
+     * 异步回调
+     */
+    private void model4() {
         // 设置帧头
         protocol.setFrameHeader((byte) 0x09C, (byte) 0xC9);
         // 设置帧尾
         protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
-        // 设置CRC计算方式和范围, 结束范围可为负值, 解决内容长度可变问题
+        // 设置CRC计算方式和范围, 结束范围可为负值
         protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
         // 启用协议
         serialPortManager.setProtocol(protocol);
-        // 粘包时间设置, 单位:毫秒,
-        // setProtocol 后该功能在setOnDataListener不生效.因为不再以超时判断而是以协议判断
         // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
-        // serialPortManager.setReceivedTimeout(350);
-        serialPortManager.setOnDataListener(new OnDataListener() {
-            @Override
-            public void onDataReceived(byte[] bytes) {
-                // 自动粘包, bytes内的数据仅是CRC计算的内容, 不返回帧头帧尾和CRC部分
-            }
-
-            @Override
-            public void onDataSend(byte[] bytes) {
-            }
-        });
-        serialPortManager.open("/dev/ttyS0", 115200);
+        serialPortManager.setReceivedTimeout(350);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                for (int i = 0; i < executes; i++) {
+                while (true) {
                     serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
-                            Log.i("onSuccess", BytesUtil.toHexString(bytes));
+                            Log.i(TAG, BytesUtil.toHexString(bytes));
                         }
 
                         @Override
                         public void onFailure(SerialPortError error) {
                             Log.i("onFailure", error.toString());
-                            errorTotal++;
                         }
 
                         @Override
                         public void onComplete() {
-                            super.onComplete();
-                            current++;
-                            if (current == executes) {
-                                Log.i("result", String.format("共执行 %d 次, 失败 %d 次", executes, errorTotal));
-                            }
                         }
                     });
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
-        }, 1000);
+        }, 2000);
+    }
+
+    /**
+     * 可变长度, 有帧头, 无帧尾, 有指定长度信息, 有CRC
+     */
+    private void model5() {
+        // 设置帧头
+        protocol.setFrameHeader((byte) 0x096, (byte) 0x69);
+        protocol.setDataLenIndex(2);   // 数据长度下标
+        protocol.setUselessLength(4);  // 除数据长度剩余长度, 不含帧头及数据本身, 因为此协议没有帧尾, 所以长度需要加上CRC的长度
+        // 设置CRC计算方式和范围, 结束范围可为负值
+        protocol.setCRC(SerialPortProtocol.CRC_MODEL.CHECKSUM, 2, -2);
+        // 启用协议
+        serialPortManager.setProtocol(protocol);
+        // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
+        serialPortManager.setReceivedTimeout(350);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                while (true) {
+                    serialPortManager.sendHexString("96 69 01 FE 01 C0 04 01 3A FE", new OnReportListener() {
+                        @Override
+                        public void onSuccess(byte[] bytes) {
+                            // 自动粘包, 不返回帧头帧尾和CRC部分
+                            Log.i(TAG, BytesUtil.toHexString(bytes));
+                        }
+
+                        @Override
+                        public void onFailure(SerialPortError error) {
+                            Log.i("onFailure", error.toString());
+                        }
+
+                        @Override
+                        public void onComplete() {
+                        }
+                    });
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, 2000);
     }
 }

@@ -38,8 +38,8 @@ public class Crypto {
         }
         sum = ~sum & 0xFFFF;
         byte[] crc = new byte[2];
-        crc[0] = (byte) (sum & 0xFF);
-        crc[1] = (byte) (sum >> 8);
+        crc[0] = (byte) (sum >> 8);
+        crc[1] = (byte) (sum & 0xFF);
         return crc;
     }
 }
