@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 28
 
     defaultConfig {
         applicationId "com.tim.serialport"
         minSdkVersion 19
-        targetSdkVersion 29
-        versionCode 3
-        versionName "1.0.2"
+        targetSdkVersion 28
+        versionCode 4
+        versionName "1.0.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -23,12 +23,5 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation project(path: ':serialPortLib')
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-
-
 }

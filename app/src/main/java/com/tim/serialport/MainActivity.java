@@ -1,5 +1,6 @@
 package com.tim.serialport;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -13,9 +14,7 @@ import com.tim.serialportlib.SerialPortProtocol;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private String TAG = getClass().getSimpleName();
     SerialPortManager  serialPortManager = new SerialPortManager();
