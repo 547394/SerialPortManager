@@ -260,7 +260,7 @@ public class SerialPortManager {
         byte[]  crc        = new byte[2];
         switch (protocol.getCRCModel()) {
             case BCC:
-                Log.i("CRC", "start--:" + area_start + " end:" + area_end);
+                logcat("CRC area:" + area_start + " - " + area_end);
                 crc[0] = Crypto.crc_bcc(buffer, area_start, area_end);
                 if (!(crc[0] == buffer[bufferLength - 1 - offset])) {
                     error = true;
