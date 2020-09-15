@@ -102,6 +102,11 @@ public class SerialPortManager {
                         SerialPortManager.this.onDataReceived(bytes);
                     } catch (Exception e) {
                         e.printStackTrace();
+                        if (onReportListener != null) {
+                            onReportListener.onFailure(SerialPortError.ACHIEVE_ERROR);
+                            onReportListener.onComplete();
+                        }
+                        clean();
                     }
                 }
 
@@ -180,7 +185,7 @@ public class SerialPortManager {
         return serialPortHelper.isOpen();
     }
 
-    private void onDataReceived(byte[] bytes) throws Exception {
+    private void onDataReceived(byte[] bytes) {
         // 粘包, 扛强干扰型, 可以兼容帧头和帧头有多余字节功能
         if (protocol.isSetFrameHeader()) {
             for (byte aByte : bytes) {
@@ -252,10 +257,12 @@ public class SerialPortManager {
         int[]   area       = protocol.getCRCArea();
         int     area_start = area[0];
         int     area_end   = area[1] > area[0] ? area[1] : bufferLength + area[1];
-        byte[]  crc        = new byte[0];
+        byte[]  crc        = new byte[2];
         switch (protocol.getCRCModel()) {
             case BCC:
-                if (!(Crypto.crc_bcc(buffer, area_start, area_end) == buffer[bufferLength - 1 - offset])) {
+                Log.i("CRC", "start--:" + area_start + " end:" + area_end);
+                crc[0] = Crypto.crc_bcc(buffer, area_start, area_end);
+                if (!(crc[0] == buffer[bufferLength - 1 - offset])) {
                     error = true;
                 }
                 break;

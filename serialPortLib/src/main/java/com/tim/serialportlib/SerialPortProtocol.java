@@ -93,7 +93,7 @@ public class SerialPortProtocol {
      */
     public int getFrameLength() {
         if (dataLenIndex > 0) {
-            return uselessLength + dataLength + getFrameHeaderLength() + getFrameEndLength() + crcLength;
+            return uselessLength + dataLength + getFrameHeaderLength() + getFrameEndLength();
         }
         if (frameLength == 0 && protocolModel == PROTOCOL_MODEL.VARIABLE) {
             return bufferLength;

@@ -24,9 +24,46 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        model1();
+        model0();
         serialPortManager.enableDebug(true);
-        serialPortManager.open("/dev/ttyS1", 9600);
+        serialPortManager.open("/dev/ttyS0", 9600);
+    }
+
+    private void model0() {
+        protocol.setFrameHeader((byte) 0xEA);
+        protocol.setFrameEnd((byte) 0xF5);
+        protocol.setDataLenIndex(3);   // 数据长度下标
+        protocol.setUselessLength(2);
+        protocol.setCRC(SerialPortProtocol.CRC_MODEL.BCC, 3, -2);
+        serialPortManager.setProtocol(protocol);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                while (true) {
+                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", new OnReportListener() {
+                        @Override
+                        public void onSuccess(byte[] bytes) {
+                            // 自动粘包, 不返回帧头帧尾和CRC部分
+                            Log.i(TAG, BytesUtil.toHexString(bytes));
+                        }
+
+                        @Override
+                        public void onFailure(SerialPortError error) {
+                            Log.i("onFailure", error.toString());
+                        }
+
+                        @Override
+                        public void onComplete() {
+                        }
+                    });
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, 2000);
     }
 
     /**

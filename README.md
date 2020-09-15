@@ -86,4 +86,4 @@ serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", new OnReport
 });
 ```
 
-具体协议使用方法参考 MainActivity.java
+具体协议使用方法参考 [MainActivity.java](https://github.com/547394/SerialPortManager/blob/master/app/src/main/java/com/tim/serialport/MainActivity.java)
