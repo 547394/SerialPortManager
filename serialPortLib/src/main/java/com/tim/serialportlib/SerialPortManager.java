@@ -293,7 +293,7 @@ public class SerialPortManager {
         cancelReceivedTimer();
         Log.d("output", BytesUtil.toHexString(buffer, bufferLength));
         if (calculateCRC()) {
-            byte[] dest = new byte[protocol.getFrameLength()];
+            byte[] dest = new byte[bufferLength];
             System.arraycopy(buffer, 0, dest, 0, dest.length);
             if (onDataListener != null) {
                 onDataListener.onDataReceived(dest);

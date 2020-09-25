@@ -24,7 +24,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        model0();
+        model5();
         serialPortManager.enableDebug(true);
         serialPortManager.open("/dev/ttyS0", 9600);
     }
@@ -160,39 +160,35 @@ public class MainActivity extends Activity {
         // 设置帧头
         protocol.setFrameHeader((byte) 0x096, (byte) 0x69);
         protocol.setDataLenIndex(2);   // 数据长度下标
-        protocol.setUselessLength(4);  // 除数据长度剩余长度, 不含帧头及数据本身, 因为此协议没有帧尾, 所以长度需要加上CRC的长度
+        protocol.setUselessLength(6);  // 除数据长度剩余长度, 不含帧头及数据本身, 因为此协议没有帧尾, 所以长度需要加上CRC的长度
         // 设置CRC计算方式和范围, 结束范围可为负值
         protocol.setCRC(SerialPortProtocol.CRC_MODEL.CHECKSUM, 2, -2);
         // 启用协议
         serialPortManager.setProtocol(protocol);
         // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
-        serialPortManager.setReceivedTimeout(350);
+        // serialPortManager.setReceivedTimeout(350);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                while (true) {
-                    serialPortManager.sendHexString("96 69 01 FE 01 C0 04 01 3A FE", new OnReportListener() {
+                for (int i = 0; i < 50; i++) {
+                    final int finalI = i;
+                    serialPortManager.sendHexString("96 69 01 FE 01 C0 05 08 32 FE", new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
-                            // 自动粘包, 不返回帧头帧尾和CRC部分
-                            Log.i(TAG, BytesUtil.toHexString(bytes));
+                            Log.i(TAG, "i=" + finalI);
                         }
 
                         @Override
                         public void onFailure(SerialPortError error) {
-                            Log.i("onFailure", error.toString());
+                            Log.e(TAG, "i=" + finalI + ":" + error.toString());
                         }
 
                         @Override
                         public void onComplete() {
                         }
                     });
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
+                Log.i(TAG, "执行 for 完成");
             }
         }, 2000);
     }
