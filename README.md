@@ -26,7 +26,7 @@ Add it in your root build.gradle at the end of repositories:
 
 
 	dependencies {
-	        implementation 'com.github.547394:SerialPortManager:1.0.7'
+	        implementation 'com.github.547394:SerialPortManager:1.0.8'
 	}
 
 
@@ -62,15 +62,13 @@ protocol.setFrameHeader((byte) 0x09C, (byte) 0xC9);
 protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
 // 设置CRC计算方式和范围, 结束范围可为负值, 解决内容长度可变问题
 protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
-// 启用协议, setProtocol 后setReceivedTimeout 无效, 因为不再以超时判断而是以协议判断
-serialPortManager.setProtocol(protocol);
 ```
 
-### 3.发送一条需要回复的串口指令
+### 3.发送一条需要回复的串口指令, 支持并发, 支持多设备协议
 ```java
 // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
 serialPortManager.setReceivedTimeout(300);
-serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", new OnReportListener() {
+serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", setProtocol, new OnReportListener() {
     @Override
     public void onSuccess(byte[] bytes) {
         Log.i("onSuccess", BytesUtil.toHexString(bytes));

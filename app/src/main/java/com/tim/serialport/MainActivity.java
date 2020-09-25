@@ -24,7 +24,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        model1();
+        // model1();
         serialPortManager.enableDebug(true);
         serialPortManager.open("/dev/ttyS0", 9600);
     }
@@ -202,5 +202,30 @@ public class MainActivity extends Activity {
                 Log.i(TAG, "执行 for 完成");
             }
         }, 2000);
+    }
+
+    private void model6() {
+        protocol.setFrameHeader((byte) 0x80, (byte) 0x03);
+        protocol.setDataLenIndex(2);
+        protocol.setUselessLength(2);
+        protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16_RTU, 0, -2);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                while (true) {
+                    serialPortManager.sendHexString("80 03 00 00 00 02 DA 1A", protocol, new OnReportListener() {
+                        @Override
+                        public void onSuccess(byte[] bytes) {
+                            Log.i(TAG, BytesUtil.toHexString(bytes));
+                        }
+                    });
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, 1000);
     }
 }

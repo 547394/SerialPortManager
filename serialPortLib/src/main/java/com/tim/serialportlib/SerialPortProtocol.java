@@ -11,7 +11,8 @@ public class SerialPortProtocol {
         NULL,
         BCC,
         CHECKSUM,
-        MODBUS_16
+        MODBUS_16,
+        MODBUS_16_RTU
     }
 
     private byte[]         frameHeader;

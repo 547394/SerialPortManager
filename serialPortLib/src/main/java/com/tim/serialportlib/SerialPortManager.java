@@ -279,6 +279,12 @@ public class SerialPortManager {
                     error = true;
                 }
                 break;
+            case MODBUS_16_RTU:
+                crc = Crypto.crc_modbus_16(buffer, area_start, area_end);
+                if (!(crc[0] == buffer[bufferLength - 1 - offset] && crc[1] == buffer[bufferLength - 2 - offset])) {
+                    error = true;
+                }
+                break;
         }
         if (error) {
             Log.e(TAG, "RECEIVED_CRC_ERROR :" + BytesUtil.toHexString(crc));
