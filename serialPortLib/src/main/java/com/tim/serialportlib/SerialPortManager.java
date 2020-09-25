@@ -153,13 +153,13 @@ public class SerialPortManager {
         return sendBytes(BytesUtil.toByteArray(hex));
     }
 
-    public void sendBytes(byte[] bytes, OnReportListener listener) {
-        queueList.offer(new SerialPortCommand(bytes, listener));
+    public void sendBytes(byte[] bytes, SerialPortProtocol protocol, OnReportListener listener) {
+        queueList.offer(new SerialPortCommand(bytes, protocol, listener));
         sendNext();
     }
 
-    public void sendHexString(String hexString, OnReportListener listener) {
-        sendBytes(BytesUtil.toByteArray(hexString), listener);
+    public void sendHexString(String hexString, SerialPortProtocol protocol, OnReportListener listener) {
+        sendBytes(BytesUtil.toByteArray(hexString), protocol, listener);
     }
 
     private void sendNext() {
@@ -172,6 +172,7 @@ public class SerialPortManager {
             }
             if (command != null) {
                 onWorking        = true;
+                protocol         = command.getProtocol();
                 onReportListener = command.getListener();
                 // 发送之前重建缓冲区
                 buffer       = new byte[bufferSize];

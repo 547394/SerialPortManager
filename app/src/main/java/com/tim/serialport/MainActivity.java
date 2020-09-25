@@ -24,7 +24,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        model5();
+        model1();
         serialPortManager.enableDebug(true);
         serialPortManager.open("/dev/ttyS0", 9600);
     }
@@ -35,12 +35,11 @@ public class MainActivity extends Activity {
         protocol.setDataLenIndex(3);   // 数据长度下标
         protocol.setUselessLength(2);
         protocol.setCRC(SerialPortProtocol.CRC_MODEL.BCC, 3, -2);
-        serialPortManager.setProtocol(protocol);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 while (true) {
-                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", new OnReportListener() {
+                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", protocol, new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
                             // 自动粘包, 不返回帧头帧尾和CRC部分
@@ -120,15 +119,13 @@ public class MainActivity extends Activity {
         protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
         // 设置CRC计算方式和范围, 结束范围可为负值
         protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
-        // 启用协议
-        serialPortManager.setProtocol(protocol);
         // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
         serialPortManager.setReceivedTimeout(350);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 while (true) {
-                    serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", new OnReportListener() {
+                    serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", protocol, new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
                             Log.i(TAG, BytesUtil.toHexString(bytes));
@@ -157,22 +154,29 @@ public class MainActivity extends Activity {
      * 可变长度, 有帧头, 无帧尾, 有指定长度信息, 有CRC
      */
     private void model5() {
+        // 多设备多协议
+        final SerialPortProtocol protocol1 = new SerialPortProtocol();
         // 设置帧头
-        protocol.setFrameHeader((byte) 0x096, (byte) 0x69);
-        protocol.setDataLenIndex(2);   // 数据长度下标
-        protocol.setUselessLength(6);  // 除数据长度剩余长度, 不含帧头及数据本身, 因为此协议没有帧尾, 所以长度需要加上CRC的长度
+        protocol1.setFrameHeader((byte) 0x096, (byte) 0x69);
+        protocol1.setDataLenIndex(2);   // 数据长度下标
+        protocol1.setUselessLength(6);  // 除数据长度剩余长度, 不含帧头及数据本身, 因为此协议没有帧尾, 所以长度需要加上CRC的长度
         // 设置CRC计算方式和范围, 结束范围可为负值
-        protocol.setCRC(SerialPortProtocol.CRC_MODEL.CHECKSUM, 2, -2);
+        protocol1.setCRC(SerialPortProtocol.CRC_MODEL.CHECKSUM, 2, -2);
         // 启用协议
-        serialPortManager.setProtocol(protocol);
+        // serialPortManager.setProtocol(protocol1);
         // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
         // serialPortManager.setReceivedTimeout(350);
+        // 协议2
+        final SerialPortProtocol protocol2 = new SerialPortProtocol();
+        protocol2.setFrameHeader((byte) 0xAA);
+        protocol2.setFrameEnd((byte) 0x55);
+        //
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 for (int i = 0; i < 50; i++) {
                     final int finalI = i;
-                    serialPortManager.sendHexString("96 69 01 FE 01 C0 05 08 32 FE", new OnReportListener() {
+                    serialPortManager.sendHexString("96 69 01 FE 01 C0 05 08 32 FE", protocol1, new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes) {
                             Log.i(TAG, "i=" + finalI);
@@ -182,9 +186,16 @@ public class MainActivity extends Activity {
                         public void onFailure(SerialPortError error) {
                             Log.e(TAG, "i=" + finalI + ":" + error.toString());
                         }
+                    });
+                    serialPortManager.sendHexString("AA 01 02 00 00 00 03 55", protocol2, new OnReportListener() {
+                        @Override
+                        public void onSuccess(byte[] bytes) {
+                            Log.i(TAG, "j=" + finalI);
+                        }
 
                         @Override
-                        public void onComplete() {
+                        public void onFailure(SerialPortError error) {
+                            Log.e(TAG, "j=" + finalI + ":" + error.toString());
                         }
                     });
                 }

@@ -3,6 +3,8 @@ Android串口通讯, 支持发送数据回调, 支持并发处理, 自定义协�
 
 是 [Android-SerialPort](https://github.com/Geek8ug/Android-SerialPort) 项目的二次封装
 
+支持多线程并发的同时多种设备协议
+
 [![](https://jitpack.io/v/547394/SerialPortManager.svg)](https://jitpack.io/#547394/SerialPortManager)
 
 ## 引入
@@ -24,7 +26,7 @@ Add it in your root build.gradle at the end of repositories:
 
 
 	dependencies {
-	        implementation 'com.github.547394:SerialPortManager:1.0.6'
+	        implementation 'com.github.547394:SerialPortManager:1.0.7'
 	}
 
 
