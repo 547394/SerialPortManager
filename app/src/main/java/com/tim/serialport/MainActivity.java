@@ -16,7 +16,7 @@ import java.util.TimerTask;
 
 public class MainActivity extends Activity {
 
-    private String TAG = getClass().getSimpleName();
+    private final String TAG = getClass().getSimpleName();
     SerialPortManager  serialPortManager = new SerialPortManager();
     SerialPortProtocol protocol          = new SerialPortProtocol();
 
@@ -27,6 +27,8 @@ public class MainActivity extends Activity {
         // model1();
         serialPortManager.enableDebug(true);
         serialPortManager.open("/dev/ttyS0", 9600);
+
+        model0();
     }
 
     private void model0() {
@@ -39,15 +41,15 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 while (true) {
-                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", protocol, new OnReportListener() {
+                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", protocol, 4,  new OnReportListener() {
                         @Override
-                        public void onSuccess(byte[] bytes) {
+                        public void onSuccess(byte[] bytes, int flag) {
                             // 自动粘包, 不返回帧头帧尾和CRC部分
-                            Log.i(TAG, BytesUtil.toHexString(bytes));
+                            Log.i(TAG, BytesUtil.toHexString(bytes) + " flag:" + flag);
                         }
 
                         @Override
-                        public void onFailure(SerialPortError error) {
+                        public void onFailure(SerialPortError error, int flag) {
                             Log.i("onFailure", error.toString());
                         }
 
@@ -127,12 +129,12 @@ public class MainActivity extends Activity {
                 while (true) {
                     serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", protocol, new OnReportListener() {
                         @Override
-                        public void onSuccess(byte[] bytes) {
+                        public void onSuccess(byte[] bytes, int flag) {
                             Log.i(TAG, BytesUtil.toHexString(bytes));
                         }
 
                         @Override
-                        public void onFailure(SerialPortError error) {
+                        public void onFailure(SerialPortError error, int flag) {
                             Log.i("onFailure", error.toString());
                         }
 
@@ -178,23 +180,23 @@ public class MainActivity extends Activity {
                     final int finalI = i;
                     serialPortManager.sendHexString("96 69 01 FE 01 C0 05 08 32 FE", protocol1, new OnReportListener() {
                         @Override
-                        public void onSuccess(byte[] bytes) {
+                        public void onSuccess(byte[] bytes, int flag) {
                             Log.i(TAG, "i=" + finalI);
                         }
 
                         @Override
-                        public void onFailure(SerialPortError error) {
+                        public void onFailure(SerialPortError error, int flag) {
                             Log.e(TAG, "i=" + finalI + ":" + error.toString());
                         }
                     });
                     serialPortManager.sendHexString("AA 01 02 00 00 00 03 55", protocol2, new OnReportListener() {
                         @Override
-                        public void onSuccess(byte[] bytes) {
+                        public void onSuccess(byte[] bytes, int flag) {
                             Log.i(TAG, "j=" + finalI);
                         }
 
                         @Override
-                        public void onFailure(SerialPortError error) {
+                        public void onFailure(SerialPortError error, int flag) {
                             Log.e(TAG, "j=" + finalI + ":" + error.toString());
                         }
                     });
@@ -215,7 +217,7 @@ public class MainActivity extends Activity {
                 while (true) {
                     serialPortManager.sendHexString("80 03 00 00 00 02 DA 1A", protocol, new OnReportListener() {
                         @Override
-                        public void onSuccess(byte[] bytes) {
+                        public void onSuccess(byte[] bytes, int flag) {
                             Log.i(TAG, BytesUtil.toHexString(bytes));
                         }
                     });

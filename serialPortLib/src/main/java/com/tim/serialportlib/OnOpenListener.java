@@ -6,7 +6,7 @@ import java.io.File;
 
 abstract public class OnOpenListener {
 
-    private String TAG = getClass().getSimpleName();
+    private final String TAG = getClass().getSimpleName();
 
     public void onSuccess(File device) {
     }

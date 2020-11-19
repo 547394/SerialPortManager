@@ -15,21 +15,21 @@ import me.f1reking.serialportlib.listener.Status;
 
 public class SerialPortManager {
 
-    private String                        TAG             = getClass().getSimpleName();
-    private SerialPortProtocol            protocol        = new SerialPortProtocol();
-    private int                           bufferSize      = 128;
-    private byte[]                        buffer          = new byte[bufferSize];
-    private int                           bufferLength    = 0;
-    private Timer                         receivedTimer;
+    private final String                        TAG             = getClass().getSimpleName();
+    private       SerialPortProtocol            protocol        = new SerialPortProtocol();
+    private       int                           bufferSize      = 128;
+    private       byte[]                        buffer          = new byte[bufferSize];
+    private       int                           bufferLength    = 0;
+    private       Timer                         receivedTimer;
     // 发关数据间隔
-    private int                           sendInterval    = 100;
+    private       int                           sendInterval    = 100;
     // 接收数据间隔, 当没有帧头帧尾时有效
-    private int                           receivedTimeout = 350;
+    private       int                           receivedTimeout = 350;
     // 发送队列
-    private LinkedList<SerialPortCommand> queueList       = new LinkedList<SerialPortCommand>();
+    private final LinkedList<SerialPortCommand> queueList       = new LinkedList<SerialPortCommand>();
     // 工作标志
-    private boolean                       onWorking       = false;
-    private boolean                       debug           = false;
+    private       boolean                       onWorking       = false;
+    private       boolean                       debug           = false;
     SerialPortHelper  serialPortHelper;
     SerialPortCommand command;
     OnOpenListener    onOpenListener;
@@ -103,7 +103,7 @@ public class SerialPortManager {
                     } catch (Exception e) {
                         e.printStackTrace();
                         if (onReportListener != null) {
-                            onReportListener.onFailure(SerialPortError.ACHIEVE_ERROR);
+                            onReportListener.onFailure(SerialPortError.ACHIEVE_ERROR, command.getFlag());
                             onReportListener.onComplete();
                         }
                         clean();
@@ -124,7 +124,7 @@ public class SerialPortManager {
                                 public void run() {
                                     Log.e(TAG, "RECEIVED_TIMEOUT");
                                     if (onReportListener != null) {
-                                        onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT);
+                                        onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
                                         onReportListener.onComplete();
                                     }
                                     cancelReceivedTimer();
@@ -153,13 +153,21 @@ public class SerialPortManager {
         return sendBytes(BytesUtil.toByteArray(hex));
     }
 
-    public void sendBytes(byte[] bytes, SerialPortProtocol protocol, OnReportListener listener) {
-        queueList.offer(new SerialPortCommand(bytes, protocol, listener));
+    public void sendBytes(byte[] bytes, SerialPortProtocol protocol, int flag, OnReportListener listener) {
+        queueList.offer(new SerialPortCommand(bytes, protocol, flag, listener));
         sendNext();
     }
 
+    public void sendHexString(String hexString, SerialPortProtocol protocol, int flag, OnReportListener listener) {
+        sendBytes(BytesUtil.toByteArray(hexString), protocol, flag, listener);
+    }
+
+    public void sendBytes(byte[] bytes, SerialPortProtocol protocol, OnReportListener listener) {
+        sendBytes(bytes, protocol, 0, listener);
+    }
+
     public void sendHexString(String hexString, SerialPortProtocol protocol, OnReportListener listener) {
-        sendBytes(BytesUtil.toByteArray(hexString), protocol, listener);
+        sendHexString(hexString, protocol, 0, listener);
     }
 
     private void sendNext() {
@@ -289,7 +297,7 @@ public class SerialPortManager {
         if (error) {
             Log.e(TAG, "RECEIVED_CRC_ERROR :" + BytesUtil.toHexString(crc));
             if (onReportListener != null) {
-                onReportListener.onFailure(SerialPortError.RECEIVED_CRC_ERROR);
+                onReportListener.onFailure(SerialPortError.RECEIVED_CRC_ERROR, command.getFlag());
                 onReportListener.onComplete();
             }
         }
@@ -306,7 +314,7 @@ public class SerialPortManager {
                 onDataListener.onDataReceived(dest);
             }
             if (onReportListener != null) {
-                onReportListener.onSuccess(dest);
+                onReportListener.onSuccess(dest, command.getFlag());
                 onReportListener.onComplete();
             }
         }
