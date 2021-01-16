@@ -22,7 +22,7 @@ public class SerialPortManager {
     private       int                           bufferLength    = 0;
     private       Timer                         receivedTimer;
     // 发关数据间隔
-    private       int                           sendInterval    = 100;
+    private       int                           sendInterval    = 50;
     // 接收数据间隔, 当没有帧头帧尾时有效
     private       int                           receivedTimeout = 350;
     // 发送队列
@@ -132,7 +132,7 @@ public class SerialPortManager {
                                 }
                             }, receivedTimeout);
                         } catch (IllegalStateException e) {
-                            e.printStackTrace();
+                            // e.printStackTrace();
                         }
                     }
                 }
@@ -166,7 +166,7 @@ public class SerialPortManager {
         sendBytes(bytes, protocol, 0, listener);
     }
 
-    public void sendHexString(String hexString, SerialPortProtocol protocol, OnReportListener listener) {
+    synchronized public void sendHexString(String hexString, SerialPortProtocol protocol, OnReportListener listener) {
         sendHexString(hexString, protocol, 0, listener);
     }
 
@@ -329,10 +329,10 @@ public class SerialPortManager {
         if (queueList.size() > 0) {
             try {
                 Thread.sleep(sendInterval);
-                sendNext();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            sendNext();
         }
     }
 
@@ -343,7 +343,8 @@ public class SerialPortManager {
                 receivedTimer.purge();
                 receivedTimer = null;
             }
-        } catch (NullPointerException ignored) {
+        } catch (NullPointerException e) {
+            e.printStackTrace();
         }
     }
 

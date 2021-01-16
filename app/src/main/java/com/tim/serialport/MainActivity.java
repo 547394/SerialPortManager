@@ -26,9 +26,58 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         // model1();
         serialPortManager.enableDebug(true);
-        serialPortManager.open("/dev/ttyS0", 9600);
+        serialPortManager.open("/dev/ttyS0", 115200);
+        serialPortManager.setReceivedTimeout(1000);
 
-        model0();
+        model9();
+    }
+
+    private void model9() {
+        protocol.setFrameHeader((byte) 0x9C, (byte) 0xC9);
+        protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
+        protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                unitTest();
+            }
+        }, 3000);
+    }
+
+    private long    tick     = 1;
+    private long    total    = 0;
+    private long    min      = 1000;
+    private long    max      = 0;
+    private long    ts;
+    private boolean hasError = false;
+
+    protected void unitTest() {
+        ts = System.currentTimeMillis();
+        // AA 55 02 01 5E 0D 0A
+        // 6A A6 01 01 01 09 CC 7A 01 01 00 90 21 3A AA E0 54 0D 0A
+        serialPortManager.sendHexString("6A A6 01 01 01 09 CC 7A 01 01 00 90 21 3A AA E0 54 0D 0A", protocol, new OnReportListener() {
+            @Override
+            public void onSuccess(byte[] bytes, int flag) {
+            }
+
+            @Override
+            public void onFailure(SerialPortError error, int flag) {
+                hasError = true;
+            }
+
+            @Override
+            public void onComplete() {
+                long that = System.currentTimeMillis() - ts - 50;
+                min = Math.min(that, min);
+                max = Math.max(that, max);
+                total += that;
+                Log.i("log", String.format("最小值 %d, 最大值 %d, 平均值 %d, 本次  %d, 共 %d 次", min, max, total / tick, that, tick));
+                if (!hasError) {
+                    tick++;
+                    unitTest();
+                }
+            }
+        });
     }
 
     private void model0() {
@@ -41,7 +90,7 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 while (true) {
-                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", protocol, 4,  new OnReportListener() {
+                    serialPortManager.sendHexString("01 EA D1 01 04 FF 11 EA F5", protocol, 4, new OnReportListener() {
                         @Override
                         public void onSuccess(byte[] bytes, int flag) {
                             // 自动粘包, 不返回帧头帧尾和CRC部分

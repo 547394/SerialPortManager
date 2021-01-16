@@ -26,7 +26,7 @@ Add it in your root build.gradle at the end of repositories:
 
 
 	dependencies {
-	        implementation 'com.github.547394:SerialPortManager:1.0.8'
+	        implementation 'com.github.547394:SerialPortManager:1.0.9'
 	}
 
 
@@ -68,7 +68,7 @@ protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
 ```java
 // 设置数据超时时间, 超过此时间如果终端没有回复数据则调用 onFailure 方法
 serialPortManager.setReceivedTimeout(300);
-serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", setProtocol, new OnReportListener() {
+serialPortManager.sendHexString("6A A6 01 07 01 01 00 E4 48 0D 0A", protocol, new OnReportListener() {
     @Override
     public void onSuccess(byte[] bytes) {
         Log.i("onSuccess", BytesUtil.toHexString(bytes));
