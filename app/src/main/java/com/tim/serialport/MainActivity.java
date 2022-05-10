@@ -27,21 +27,21 @@ public class MainActivity extends Activity {
         // model1();
         serialPortManager.enableDebug(true);
         serialPortManager.open("/dev/ttyS0", 115200);
-        serialPortManager.setReceivedTimeout(1000);
 
         model9();
     }
 
     private void model9() {
-        protocol.setFrameHeader((byte) 0x9C, (byte) 0xC9);
-        protocol.setFrameEnd((byte) 0x0E, (byte) 0x0A);
-        protocol.setCRC(SerialPortProtocol.CRC_MODEL.MODBUS_16, 2, -4);
-        new Timer().schedule(new TimerTask() {
+        protocol.setFrameHeader((byte) 0x02);
+        protocol.setFrameEnd((byte) 0x03);
+        protocol.setCRC(SerialPortProtocol.CRC_MODEL.BCC, 1, -2);
+
+        serialPortManager.sendHexString("6A A6", protocol, new OnReportListener() {
             @Override
-            public void run() {
-                unitTest();
+            public void onSuccess(byte[] bytes, int flag) {
+                super.onSuccess(bytes, flag);
             }
-        }, 3000);
+        });
     }
 
     private long    tick     = 1;

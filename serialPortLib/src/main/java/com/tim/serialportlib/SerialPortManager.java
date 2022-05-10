@@ -131,7 +131,7 @@ public class SerialPortManager {
                                     clean();
                                 }
                             }, receivedTimeout);
-                        } catch (IllegalStateException e) {
+                        } catch (Exception e) {
                             // e.printStackTrace();
                         }
                     }
