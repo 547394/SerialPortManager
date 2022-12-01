@@ -57,7 +57,9 @@ public class SerialPortManager {
     }
 
     public void setBufferSize(int bufferSize) {
-        this.bufferSize = bufferSize;
+        this.bufferSize   = bufferSize;
+        this.buffer       = new byte[bufferSize];
+        this.bufferLength = 0;
     }
 
     public void setProtocol(SerialPortProtocol protocol) {
@@ -126,8 +128,9 @@ public class SerialPortManager {
                                     if (onReportListener != null) {
                                         onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
                                         onReportListener.onComplete();
+
                                     }
-                                    cancelReceivedTimer();
+                                    // cancelReceivedTimer();
                                     clean();
                                 }
                             }, receivedTimeout);
@@ -318,10 +321,15 @@ public class SerialPortManager {
                 onReportListener.onComplete();
             }
         }
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         clean();
     }
 
-    private void clean() {
+    synchronized private void clean() {
         buffer           = new byte[bufferSize];
         bufferLength     = 0;
         onWorking        = false;
