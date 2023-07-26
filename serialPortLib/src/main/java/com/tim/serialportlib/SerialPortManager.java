@@ -122,24 +122,31 @@ public class SerialPortManager {
                     if (onDataListener != null) {
                         onDataListener.onDataSend(bytes);
                     }
-                    if (onReportListener != null) {
-                        receivedTimer = new Timer();
+                    try {
+                        if (onReportListener != null) {
+                            receivedTimer = new Timer();
+                            try {
+                                receivedTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        Log.e(TAG, "RECEIVED_TIMEOUT");
+                                        try {
+                                            if (onReportListener != null) {
+                                                onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
+                                                onReportListener.onComplete();
 
-                        receivedTimer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                Log.e(TAG, "RECEIVED_TIMEOUT");
-                                try {
-                                    if (onReportListener != null) {
-                                        onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
-                                        onReportListener.onComplete();
-
+                                            }
+                                            clean();
+                                        } catch (Exception ignored) {
+                                        }
                                     }
-                                    clean();
-                                } catch (Exception ignored) {
-                                }
+                                }, receivedTimeout);
+                            } catch (Exception ignored) {
+
                             }
-                        }, receivedTimeout);
+                        }
+                    } catch (Exception ignored) {
+
                     }
                 }
             });
