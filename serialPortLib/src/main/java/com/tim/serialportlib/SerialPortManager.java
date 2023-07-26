@@ -134,7 +134,6 @@ public class SerialPortManager {
                                             if (onReportListener != null) {
                                                 onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
                                                 onReportListener.onComplete();
-
                                             }
                                             clean();
                                         } catch (Exception ignored) {
@@ -340,10 +339,10 @@ public class SerialPortManager {
     }
 
     synchronized private void clean() {
-        buffer       = new byte[bufferSize];
-        bufferLength = 0;
-        onWorking    = false;
-//        onReportListener = null;
+        buffer           = new byte[bufferSize];
+        bufferLength     = 0;
+        onWorking        = false;
+        onReportListener = null;
         if (queueList.size() > 0) {
             try {
                 Thread.sleep(sendInterval);
