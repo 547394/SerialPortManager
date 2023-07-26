@@ -104,11 +104,15 @@ public class SerialPortManager {
                         SerialPortManager.this.onDataReceived(bytes);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        if (onReportListener != null) {
-                            onReportListener.onFailure(SerialPortError.ACHIEVE_ERROR, command.getFlag());
-                            onReportListener.onComplete();
+                        try {
+                            if (onReportListener != null) {
+                                onReportListener.onFailure(SerialPortError.ACHIEVE_ERROR, command.getFlag());
+                                onReportListener.onComplete();
+                            }
+                            clean();
+                        } catch (Exception ignored) {
+
                         }
-                        clean();
                     }
                 }
 
@@ -120,23 +124,22 @@ public class SerialPortManager {
                     }
                     if (onReportListener != null) {
                         receivedTimer = new Timer();
-                        try {
-                            receivedTimer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    Log.e(TAG, "RECEIVED_TIMEOUT");
+
+                        receivedTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                Log.e(TAG, "RECEIVED_TIMEOUT");
+                                try {
                                     if (onReportListener != null) {
                                         onReportListener.onFailure(SerialPortError.RECEIVED_TIMEOUT, command.getFlag());
                                         onReportListener.onComplete();
 
                                     }
-                                    // cancelReceivedTimer();
                                     clean();
+                                } catch (Exception ignored) {
                                 }
-                            }, receivedTimeout);
-                        } catch (Exception e) {
-                            // e.printStackTrace();
-                        }
+                            }
+                        }, receivedTimeout);
                     }
                 }
             });
@@ -330,10 +333,10 @@ public class SerialPortManager {
     }
 
     synchronized private void clean() {
-        buffer           = new byte[bufferSize];
-        bufferLength     = 0;
-        onWorking        = false;
-        onReportListener = null;
+        buffer       = new byte[bufferSize];
+        bufferLength = 0;
+        onWorking    = false;
+//        onReportListener = null;
         if (queueList.size() > 0) {
             try {
                 Thread.sleep(sendInterval);
