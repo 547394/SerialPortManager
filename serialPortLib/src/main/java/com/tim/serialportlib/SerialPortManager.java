@@ -17,7 +17,7 @@ public class SerialPortManager {
 
     private final String                        TAG             = getClass().getSimpleName();
     private       SerialPortProtocol            protocol        = new SerialPortProtocol();
-    private       int                           bufferSize      = 128;
+    private       int                           bufferSize      = 1024;
     private       byte[]                        buffer          = new byte[bufferSize];
     private       int                           bufferLength    = 0;
     private       Timer                         receivedTimer;
@@ -318,17 +318,21 @@ public class SerialPortManager {
 
     private void output() {
         cancelReceivedTimer();
-        Log.d("output", BytesUtil.toHexString(buffer, bufferLength));
-        if (calculateCRC()) {
-            byte[] dest = new byte[bufferLength];
-            System.arraycopy(buffer, 0, dest, 0, dest.length);
-            if (onDataListener != null) {
-                onDataListener.onDataReceived(dest);
+        try {
+            Log.d("output", BytesUtil.toHexString(buffer, bufferLength));
+            if (calculateCRC()) {
+                byte[] dest = new byte[bufferLength];
+                System.arraycopy(buffer, 0, dest, 0, dest.length);
+                if (onDataListener != null) {
+                    onDataListener.onDataReceived(dest);
+                }
+                if (onReportListener != null) {
+                    onReportListener.onSuccess(dest, command.getFlag());
+                    onReportListener.onComplete();
+                }
             }
-            if (onReportListener != null) {
-                onReportListener.onSuccess(dest, command.getFlag());
-                onReportListener.onComplete();
-            }
+        } catch (Exception ignored) {
+            // java.lang.StringIndexOutOfBoundsException
         }
         try {
             Thread.sleep(10);
