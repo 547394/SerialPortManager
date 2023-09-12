@@ -182,7 +182,7 @@ public class SerialPortManager {
         sendHexString(hexString, protocol, 0, listener);
     }
 
-    private void sendNext() {
+    synchronized private void sendNext() {
         if (!onWorking) {
             try {
                 command = queueList.poll();
@@ -191,13 +191,17 @@ public class SerialPortManager {
                 return;
             }
             if (command != null) {
-                onWorking        = true;
-                protocol         = command.getProtocol();
-                onReportListener = command.getListener();
-                // 发送之前重建缓冲区
-                buffer       = new byte[bufferSize];
-                bufferLength = 0;
-                serialPortHelper.sendBytes(command.getHexData());
+                onWorking = true;
+                try {
+                    protocol         = command.getProtocol();
+                    onReportListener = command.getListener();
+                    // 发送之前重建缓冲区
+                    buffer       = new byte[bufferSize];
+                    bufferLength = 0;
+                    serialPortHelper.sendBytes(command.getHexData());
+                } catch (NullPointerException ignored) {
+
+                }
             }
         }
     }
