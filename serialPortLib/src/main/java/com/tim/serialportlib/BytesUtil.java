@@ -1,6 +1,8 @@
 package com.tim.serialportlib;
 
 public class BytesUtil {
+    // 查表法，避免计算
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     static public int byte2int(byte n1) {
         return n1 < 0 ? n1 + 256 : n1;
@@ -10,68 +12,39 @@ public class BytesUtil {
         return byte2int(n1) * 0x100 + byte2int(n2);
     }
 
-    static public String toHexString(byte[] bytes) {
-        return toHexString(bytes, bytes.length).toUpperCase();
+    public static String toHexString(byte[] bytes) {
+        if (bytes == null) return "";
+        return toHexString(bytes, bytes.length);
     }
 
-    /**
-     * 将byte[]数组转化为String类型
-     *
-     * @param arg    需要转换的byte[]数组
-     * @param length 需要转换的数组长度
-     * @return 转换后的String队形
-     */
-    public static String toHexString(byte[] arg, int length) {
-        StringBuilder result = new StringBuilder();
-        if (arg != null) {
-            for (int i = 0; i < length; i++) {
-                result.append(Integer.toHexString(arg[i] < 0 ? arg[i] + 256 : arg[i]).length() == 1 ? "0" + Integer.toHexString(arg[i] < 0 ? arg[i] + 256 : arg[i]) : Integer.toHexString(arg[i] < 0 ? arg[i] + 256 : arg[i])).append(" ");
-            }
-            result.deleteCharAt(result.length() - 1);
+    public static String toHexString(byte[] bytes, int length) {
+        if (bytes == null || length <= 0 || length > bytes.length) return "";
+
+        // 预分配字符数组长度：每个byte转成 "XX " (3个字符)
+        char[] hexChars = new char[length * 3];
+        for (int i = 0; i < length; i++) {
+            int v = bytes[i] & 0xFF;
+            hexChars[i * 3] = HEX_ARRAY[v >>> 4];     // 高4位
+            hexChars[i * 3 + 1] = HEX_ARRAY[v & 0x0F]; // 低4位
+            hexChars[i * 3 + 2] = ' ';                 // 空格
         }
-        return result.toString().toUpperCase();
+        // 去掉最后一个空格
+        return new String(hexChars, 0, hexChars.length - 1);
     }
 
-    /**
-     * 将String转化为byte[]数组
-     *
-     * @param arg 需要转换的String对象
-     * @return 转换后的byte[]数组
-     */
-    public static byte[] toByteArray(String arg) {
-        if (arg != null) {
-            /* 1.先去除String中的' '，然后将String转换为char数组 */
-            char[] NewArray = new char[1000];
-            char[] array    = arg.toCharArray();
-            int    length   = 0;
-            for (char anArray : array) {
-                if (anArray != ' ') {
-                    NewArray[length] = anArray;
-                    length++;
-                }
-            }
-            /* 将char数组中的值转成一个实际的十进制数组 */
-            int EvenLength = (length % 2 == 0) ? length : length + 1;
-            if (EvenLength != 0) {
-                int[] data = new int[EvenLength];
-                data[EvenLength - 1] = 0;
-                for (int i = 0; i < length; i++) {
-                    if (NewArray[i] >= '0' && NewArray[i] <= '9') {
-                        data[i] = NewArray[i] - '0';
-                    } else if (NewArray[i] >= 'a' && NewArray[i] <= 'f') {
-                        data[i] = NewArray[i] - 'a' + 10;
-                    } else if (NewArray[i] >= 'A' && NewArray[i] <= 'F') {
-                        data[i] = NewArray[i] - 'A' + 10;
-                    }
-                }
-                /* 将 每个char的值每两个组成一个16进制数据 */
-                byte[] byteArray = new byte[EvenLength / 2];
-                for (int i = 0; i < EvenLength / 2; i++) {
-                    byteArray[i] = (byte) (data[i * 2] * 16 + data[i * 2 + 1]);
-                }
-                return byteArray;
-            }
+    public static byte[] toByteArray(String hexString) {
+        if (hexString == null || hexString.isEmpty()) return null;
+        hexString = hexString.replace(" ", "").toUpperCase();
+        int len = hexString.length();
+        if (len % 2 != 0) {
+            hexString = "0" + hexString; // 补齐
+            len++;
         }
-        return new byte[]{};
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
+                    + Character.digit(hexString.charAt(i + 1), 16));
+        }
+        return data;
     }
 }
