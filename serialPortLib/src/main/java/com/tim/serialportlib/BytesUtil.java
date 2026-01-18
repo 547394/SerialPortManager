@@ -8,8 +8,8 @@ public class BytesUtil {
         return n1 < 0 ? n1 + 256 : n1;
     }
 
-    static public int add(byte n1, byte n2) {
-        return byte2int(n1) * 0x100 + byte2int(n2);
+    static public int bytesToShort(byte high, byte low) {
+        return (byte2int(high) << 8) | byte2int(low);
     }
 
     public static String toHexString(byte[] bytes) {
