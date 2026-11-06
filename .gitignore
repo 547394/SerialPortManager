@@ -12,3 +12,7 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# 本地验证工程与工作区缓存, 不入库
+.workbuddy/
+

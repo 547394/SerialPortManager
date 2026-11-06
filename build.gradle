@@ -2,10 +2,12 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.1'
+        //noinspection GradleDependency
+        classpath 'com.android.tools.build:gradle:4.1.1' // 与 Gradle 6.5 / compileSdk 28 配套，不升级
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the indi
@@ -16,11 +18,13 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        mavenCentral()
         maven { url 'https://jitpack.io' }
     }
 }
 
+//noinspection ConfigurationAvoidance
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
